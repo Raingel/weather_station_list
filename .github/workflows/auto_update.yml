@@ -1,4 +1,4 @@
-name: Download labels
+name: Update weather station list
 
 on:
   #push:
