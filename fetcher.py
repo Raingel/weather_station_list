@@ -33,7 +33,18 @@ def load_weather_station_list(include_agr_sta = True):
         weather_station_list = weather_station_list.append(agr_get_sta_list(level_id=1), ignore_index = True)
     return weather_station_list
 
+#Load the file containing the English site name, but the code of this data is incomplete, so it can' t be used directly
+STMap = requests.get('https://www.cwb.gov.tw/Data/js/Observe/OSM/C/STMap.json').text
+STMap_dic = json.loads(STMap)
+sta_code_to_en = {}
+for sta in STMap_dic:
+    sta_code_to_en[sta['ID']] = sta['eSTname']
+
+
+
 weather_sta_list = load_weather_station_list()
+#Insert the English name of the station
+weather_sta_list['英文站名'] = weather_sta_list['站號'].str.slice(0,-1).map(sta_code_to_en)
 weather_sta_list.to_csv('./data/weather_sta_list.csv', encoding = 'utf-8-sig')
 #back up
 weather_sta_list.to_csv('./data/weather_sta_list_'+pd.to_datetime("today").strftime("%Y-%m-%d")+'.csv', encoding = 'utf-8-sig')
