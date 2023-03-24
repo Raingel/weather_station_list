@@ -55,11 +55,13 @@ for sta in STMap_dic:
 weather_sta_list = load_weather_station_list()
 #Insert the English name of the station
 weather_sta_list['英文站名'] = weather_sta_list['站號'].str.slice(0,-1).map(sta_code_to_en)
+
+# %%
+#Make sure the columns ordered as expected
+#It should be ['站號', '站名', '站種', '海拔高度(m)', '經度', '緯度', '城市', '地址', '資料起始日期', '撤站日期', '備註', '原站號', '新站號', '英文站名']
+weather_sta_list = weather_sta_list[['站號', '站名', '站種', '海拔高度(m)', '經度', '緯度', '城市', '地址', '資料起始日期', '撤站日期', '備註', '原站號', '新站號', '英文站名']]
+
 weather_sta_list.to_csv('./data/weather_sta_list.csv', encoding = 'utf-8-sig')
 #back up
 weather_sta_list.to_csv('./data/weather_sta_list_'+pd.to_datetime("today").strftime("%Y-%m-%d")+'.csv', encoding = 'utf-8-sig')
-
-
-
-
 
