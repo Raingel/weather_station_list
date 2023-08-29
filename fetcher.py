@@ -26,17 +26,13 @@ def agr_get_sta_list(area_id=0, level_id=0):
     extract_df.columns=['站號', '站名', '海拔高度(m)', '緯度', '經度', '資料起始日期', '撤站日期']
     return extract_df
     
-def load_weather_station_list():
+def load_weather_station_list(include_agr_sta = True):
     #load from CWB
     raw = pd.read_html('https://e-service.cwb.gov.tw/wdps/obs/state.htm')
     weather_station_list = pd.concat([raw[0],raw[1]])
     #load from agri
-    """
-    Deprecated
-    CWB has been providing agricultural weather station data since 2023/03, so there is no need to capture agricultural weather stations separately.
     if include_agr_sta:
         weather_station_list = weather_station_list.append(agr_get_sta_list(level_id=1), ignore_index = True)
-    """
     return weather_station_list
 
 
