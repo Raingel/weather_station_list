@@ -32,7 +32,8 @@ def load_weather_station_list(include_agr_sta = True):
     weather_station_list = pd.concat([raw[0],raw[1]])
     #load from agri
     if include_agr_sta:
-        weather_station_list = weather_station_list.append(agr_get_sta_list(level_id=1), ignore_index = True)
+        #weather_station_list = weather_station_list.append(agr_get_sta_list(level_id=1), ignore_index = True)
+        weather_station_list = pd.concat([weather_station_list, agr_get_sta_list(level_id=1)], ignore_index=True)
     return weather_station_list
 
 
