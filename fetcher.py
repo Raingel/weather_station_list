@@ -15,8 +15,8 @@ def agr_get_sta_list(area_id=0, level_id=0):
         "sec-fetch-site": "same-origin",
         "x-requested-with": "XMLHttpRequest", #required
     }
-    #URI = 'https://agr.cwb.gov.tw/NAGR/history/station_day/get_station_name'
-    URI = 'https://agr.cwb.gov.tw/NAGR/monitor/get_point_list'
+    #URI = 'https://agr.cwa.gov.tw/NAGR/history/station_day/get_station_name'
+    URI = 'https://agr.cwa.gov.tw/NAGR/monitor/get_point_list'
     area = ['', '北', '中', '南', '東'][area_id]
     level = ['自動站', '新農業站'][level_id]
     r1 = requests.post(URI, data={'area':area, 'level':level}, headers = my_headers)
@@ -28,7 +28,7 @@ def agr_get_sta_list(area_id=0, level_id=0):
     
 def load_weather_station_list(include_agr_sta = True):
     #load from CWB
-    raw = pd.read_html('https://e-service.cwb.gov.tw/wdps/obs/state.htm')
+    raw = pd.read_html('https://e-service.cwa.gov.tw/wdps/obs/state.htm')
     weather_station_list = pd.concat([raw[0],raw[1]])
     #load from agri
     if include_agr_sta:
@@ -41,7 +41,7 @@ def load_weather_station_list(include_agr_sta = True):
 
 # %%
 #Load the file containing the English site name, but the code of this data is incomplete, so it can' t be used directly
-STMap = requests.get('https://www.cwb.gov.tw/Data/js/Observe/OSM/C/STMap.json').text
+STMap = requests.get('https://www.cwa.gov.tw/Data/js/Observe/OSM/C/STMap.json').text
 STMap_dic = json.loads(STMap)
 sta_code_to_en = {}
 for sta in STMap_dic:
