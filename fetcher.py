@@ -28,7 +28,7 @@ def agr_get_sta_list(area_id=0, level_id=0):
     
 def load_weather_station_list(include_agr_sta = True):
     #load from CWB
-    raw = pd.read_html('https://e-service.cwa.gov.tw/wdps/obs/state.htm')
+    raw = pd.read_html('https://hdps.cwa.gov.tw/static/state.html')
     weather_station_list = pd.concat([raw[0],raw[1]])
     #load from agri
     if include_agr_sta:
@@ -57,7 +57,8 @@ weather_sta_list['英文站名'] = weather_sta_list['站號'].str.slice(0,-1).ma
 #Make sure the columns ordered as expected
 #It should be ['站號', '站名', '站種', '海拔高度(m)', '經度', '緯度', '城市', '地址', '資料起始日期', '撤站日期', '備註', '原站號', '新站號', '英文站名']
 weather_sta_list = weather_sta_list[['站號', '站名', '站種', '海拔高度(m)', '經度', '緯度', '城市', '地址', '資料起始日期', '撤站日期', '備註', '原站號', '新站號', '英文站名']]
-
+# 根據站號移除重複的資料
+weather_sta_list = weather_sta_list.drop_duplicates(subset='站號', keep='first')
 weather_sta_list.to_csv('./data/weather_sta_list.csv', encoding = 'utf-8-sig')
 #back up
 weather_sta_list.to_csv('./data/weather_sta_list_'+pd.to_datetime("today").strftime("%Y-%m-%d")+'.csv', encoding = 'utf-8-sig')
