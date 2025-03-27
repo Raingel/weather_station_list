@@ -1,5 +1,5 @@
 # 臺灣氣象觀測站列表
-- 本系統每周一會自動自[**測站代號及現況查詢**](https://e-service.cwb.gov.tw/wdps/obs/state.htm "**測站代號及現況查詢**")及[**農業氣象觀測網監測**](https://agr.cwb.gov.tw/ "**農業氣象觀測網監測**")下載最新的氣象觀測站(含農業氣象站及已廢站站點)資料
+- 本系統每周一會自動自[**測站代號及現況查詢**](https://hdps.cwa.gov.tw/static/state.html "**測站代號及現況查詢**")及[**農業氣象觀測網監測**](https://agr.cwa.gov.tw/ "**農業氣象觀測網監測**")下載最新的氣象觀測站(含農業氣象站及已廢站站點)資料
 
 - 資料自動儲存在/data/weather_sta_list.csv內
 
