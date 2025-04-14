@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>氣象站時段檢視</title>
+  <!-- 引入 Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin=""/>
+  <style>
+    /* 讓頁面無間距，並使地圖全螢幕 */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    /* 全螢幕地圖 */
+    #map {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1;
+    }
+    /* 浮動式日期面板 */
+    .slider-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+    }
+    .slider-panel label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    .slider-panel input[type="range"] {
+      width: 200px;
+    }
+    /* 圖例（Legend）的現代化美編 */
+    .info.legend {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+      font-size: 14px;
+      line-height: 18px;
+      color: #555;
+    }
+    .info.legend i {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <!-- 全螢幕的地圖 -->
+  <div id="map"></div>
+  
+  <!-- 浮動式日期面板 -->
+  <div class="slider-panel">
+    <label for="dateSlider">選擇日期：<span id="dateDisplay"></span></label>
+    <input id="dateSlider" type="range" step="1">
+  </div>
+  
+  <!-- 載入 Leaflet 與 PapaParse（不含 integrity 屬性）-->
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  
+  <script>
+    // 全域變數：存放 CSV 資料與 marker 圖層
+    let weatherStations = [];
+    let markerLayer = L.layerGroup();
+    let stationTypeColors = {};
+
+    // 時間軸設定：起點2000/01-01，算出至今的月數
+    const timelineStart = new Date(1990, 0, 1);
+    const now = new Date();
+    const monthDiff = (now.getFullYear() - timelineStart.getFullYear()) * 12 + (now.getMonth() - timelineStart.getMonth());
+
+    // 取得 slider 與日期顯示 DOM 元素
+    const slider = document.getElementById("dateSlider");
+    slider.min = 0;
+    slider.max = monthDiff;
+    slider.value = monthDiff;
+    const dateDisplay = document.getElementById("dateDisplay");
+
+    // 初始化 Leaflet 地圖，以台灣大致中心設定，縮放層級為8
+    const map = L.map('map').setView([23.5, 121], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    markerLayer.addTo(map);
+
+    // 讀取 CSV 資料
+    const csvUrl = "https://raw.githubusercontent.com/Raingel/weather_station_list/refs/heads/main/data/weather_sta_list.csv";
+    Papa.parse(csvUrl, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        weatherStations = results.data;
+        assignStationTypeColors();
+        updateMap();
+        createLegend();
+      },
+      error: function(err) {
+        console.error("CSV 讀取錯誤:", err);
+      }
+    });
+    
+    // 依據所有站點動態產生「站種」對應顏色
+    function assignStationTypeColors(){
+      const typesSet = new Set();
+      weatherStations.forEach(station => {
+        if(station["站種"] && station["站種"].trim() !== "") {
+          typesSet.add(station["站種"].trim());
+        }
+      });
+      const types = Array.from(typesSet);
+      types.forEach((type, idx) => {
+        const hue = Math.round((360 / types.length) * idx);
+        stationTypeColors[type] = `hsl(${hue},70%,50%)`;
+      });
+    }
+    
+    // 依據 slider 數值取得該月第一天的日期
+    function getSelectedDate(){
+      const monthOffset = parseInt(slider.value);
+      const year = timelineStart.getFullYear() + Math.floor(monthOffset / 12);
+      const month = timelineStart.getMonth() + (monthOffset % 12);
+      return new Date(year, month, 1);
+    }
+    
+    // 更新日期顯示（格式：YYYY-MM）
+    function updateDateDisplay(date){
+      const year = date.getFullYear();
+      const month = (date.getMonth()+1).toString().padStart(2, '0');
+      dateDisplay.textContent = `${year}-${month}`;
+    }
+
+    // 檢查該站在選擇日期是否可用：起始日期 <= 選擇日期 且（撤站日期 為空 或 選擇日期 < 撤站日期）
+    function isStationActive(station, selectedDate) {
+      const startDate = station["資料起始日期"] ? new Date(station["資料起始日期"]) : null;
+      const endDate = station["撤站日期"] ? new Date(station["撤站日期"]) : null;
+      if (!startDate) return false;
+      if (selectedDate < startDate) return false;
+      if (endDate && selectedDate >= endDate) return false;
+      return true;
+    }
+    
+    // 清除圖層並根據選擇日期加入 marker
+    function updateMap(){
+      const selectedDate = getSelectedDate();
+      updateDateDisplay(selectedDate);
+      markerLayer.clearLayers();
+      weatherStations.forEach(station => {
+        if(isStationActive(station, selectedDate)){
+          const lat = parseFloat(station["緯度"]);
+          const lon = parseFloat(station["經度"]);
+          if(isNaN(lat) || isNaN(lon)) return;
+          const type = station["站種"] ? station["站種"].trim() : "未知";
+          const markerColor = stationTypeColors[type] || "#3388ff";
+          const marker = L.circleMarker([lat, lon], {
+            radius: 8,
+            fillColor: markerColor,
+            color: "#000",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+          });
+          const popupContent = `
+            <strong>${station["站名"]}</strong><br/>
+            站號：${station["站號"]}<br/>
+            站種：${station["站種"]}<br/>
+            海拔：${station["海拔高度(m)"]} m<br/>
+            地址：${station["地址"]}<br/>
+            資料起始：${station["資料起始日期"]}<br/>
+            撤站日期：${station["撤站日期"] || "N/A"}
+          `;
+          marker.bindPopup(popupContent);
+          markerLayer.addLayer(marker);
+        }
+      });
+    }
+    
+    // 當滑桿值變更時即時更新地圖
+    slider.addEventListener("input", updateMap);
+    
+    // 建立圖例，依照各站種顯示其對應顏色
+    function createLegend(){
+      const legend = L.control({position: 'bottomright'});
+      legend.onAdd = function(map) {
+        const div = L.DomUtil.create('div', 'info legend');
+        let legendHTML = "<strong>站種</strong><br>";
+        for (const [type, color] of Object.entries(stationTypeColors)) {
+          legendHTML += `<i style="background: ${color};"></i>${type}<br>`;
+        }
+        div.innerHTML = legendHTML;
+        return div;
+      };
+      legend.addTo(map);
+    }
+  </script>
+</body>
+</html>
